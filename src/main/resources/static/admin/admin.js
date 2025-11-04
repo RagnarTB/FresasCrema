@@ -449,8 +449,11 @@ function nuevoProducto() {
         </div>
 
         <div class="form-group">
-            <label for="producto-imagen">URL de la Imagen</label>
+            <label for="producto-imagen-file">Subir Imagen</label>
+            <input type="file" id="producto-imagen-file" accept="image/*" style="margin-bottom: 8px;">
+            <small style="display: block; color: #666; margin-bottom: 8px;">O ingresa una URL:</small>
             <input type="url" id="producto-imagen" name="imagenUrl" placeholder="https://ejemplo.com/imagen.jpg">
+            <div id="imagen-preview" style="margin-top: 12px;"></div>
         </div>
 
         <div class="form-group">
@@ -460,6 +463,20 @@ function nuevoProducto() {
             </div>
         </div>
     `;
+
+    // Configurar preview de imagen
+    const fileInput = document.getElementById('producto-imagen-file');
+    const imagePreview = document.getElementById('imagen-preview');
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; border-radius: 8px;">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 
     // Configurar el evento de submit
     form.onsubmit = async (e) => {
@@ -510,8 +527,15 @@ async function editarProducto(id) {
             </div>
 
             <div class="form-group">
-                <label for="producto-imagen">URL de la Imagen</label>
+                <label for="producto-imagen-file">Cambiar Imagen</label>
+                <input type="file" id="producto-imagen-file" accept="image/*" style="margin-bottom: 8px;">
+                <small style="display: block; color: #666; margin-bottom: 8px;">O ingresa una URL:</small>
                 <input type="url" id="producto-imagen" name="imagenUrl" value="${producto.imagenUrl || ''}" placeholder="https://ejemplo.com/imagen.jpg">
+                ${producto.imagenUrl ? `
+                    <div id="imagen-preview" style="margin-top: 12px;">
+                        <img src="${producto.imagenUrl}" style="max-width: 200px; border-radius: 8px;">
+                    </div>
+                ` : '<div id="imagen-preview" style="margin-top: 12px;"></div>'}
             </div>
 
             <div class="form-group">
@@ -521,6 +545,22 @@ async function editarProducto(id) {
                 </div>
             </div>
         `;
+
+        // Configurar preview de imagen
+        const fileInput = document.getElementById('producto-imagen-file');
+        const imagePreview = document.getElementById('imagen-preview');
+        if (fileInput && imagePreview) {
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; border-radius: 8px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
 
         // Configurar el evento de submit
         form.onsubmit = async (e) => {
@@ -542,18 +582,38 @@ async function guardarProducto(id = null) {
     const nombre = document.getElementById('producto-nombre').value;
     const descripcion = document.getElementById('producto-descripcion').value;
     const tipoCrema = document.getElementById('producto-tipo-crema').value;
-    const imagenUrl = document.getElementById('producto-imagen').value;
+    let imagenUrl = document.getElementById('producto-imagen').value;
     const disponible = document.getElementById('producto-disponible').checked;
-
-    const producto = {
-        nombre,
-        descripcion,
-        tipoCrema,
-        imagenUrl,
-        disponible
-    };
+    const fileInput = document.getElementById('producto-imagen-file');
 
     try {
+        // Si hay un archivo seleccionado, subirlo primero
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadResponse = await fetch('/api/admin/imagenes', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Error al subir la imagen');
+            }
+
+            const uploadData = await uploadResponse.json();
+            imagenUrl = uploadData.url;
+        }
+
+        const producto = {
+            nombre,
+            descripcion,
+            tipoCrema,
+            imagenUrl,
+            disponible
+        };
+
         const url = id ? `/api/admin/productos/${id}` : '/api/admin/productos';
         const method = id ? 'PUT' : 'POST';
 

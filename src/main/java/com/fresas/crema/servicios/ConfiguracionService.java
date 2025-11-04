@@ -24,14 +24,22 @@ public class ConfiguracionService {
             throw new IllegalArgumentException("El número de WhatsApp no puede estar vacío");
         }
 
-        // Limpiar espacios en blanco
-        numero = numero.trim();
+        // Limpiar espacios en blanco y eliminar el + si existe
+        numero = numero.trim().replace("+", "").replace(" ", "").replace("-", "");
 
-        // Validar formato básico (debe empezar con + y tener solo números después)
-        if (!numero.matches("^\\+\\d{10,15}$")) {
-            throw new IllegalArgumentException(
-                    "El número debe tener el formato correcto: +[código de país][número] (ej: +51987654321)");
+        // Si el número no empieza con 51, agregarlo automáticamente (código de Perú)
+        if (!numero.startsWith("51")) {
+            numero = "51" + numero;
         }
+
+        // Validar formato básico (debe tener 11 dígitos para Perú: 51 + 9 dígitos)
+        if (!numero.matches("^51\\d{9}$")) {
+            throw new IllegalArgumentException(
+                    "El número debe tener 9 dígitos (ej: 987654321). El código +51 se agregará automáticamente.");
+        }
+
+        // Agregar el + al inicio para el formato internacional
+        numero = "+" + numero;
 
         Configuracion config = configuracionRepositorio.findById("WHATSAPP_NUMERO")
                 .orElse(new Configuracion());
