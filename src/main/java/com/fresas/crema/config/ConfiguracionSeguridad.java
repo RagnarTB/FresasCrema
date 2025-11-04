@@ -14,6 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +40,16 @@ public class ConfiguracionSeguridad {
         return authProvider;
     }
 
+    /**
+     * Configurar firewall para permitir jsessionid en URLs
+     */
+    @Bean
+    public HttpFirewall allowUrlEncodedSlashHttpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        firewall.setAllowSemicolon(true); // Permite ; en URLs (para jsessionid)
+        return firewall;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -47,7 +59,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers("/", "/index.html", "/style.css", "/script.js").permitAll()
                         // API pública
                         .requestMatchers("/api/public/**").permitAll()
-                        // Archivos estáticos del admin (HTML, CSS, JS)
+                        // Archivos estáticos del admin (HTML, CSS, JS) - sin autenticación
                         .requestMatchers("/admin/**").permitAll()
                         // Consola H2 para desarrollo
                         .requestMatchers("/h2-console/**").permitAll()
@@ -58,6 +70,7 @@ public class ConfiguracionSeguridad {
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated())
                 .formLogin(form -> form
+                        .loginPage("/admin/login.html") // Página de login personalizada
                         .loginProcessingUrl("/api/login") // URL que procesa el login
                         .successHandler(authenticationSuccessHandler())
                         .failureHandler(authenticationFailureHandler())
