@@ -18,18 +18,34 @@ public class ConfiguracionApiController {
     @GetMapping("/whatsapp")
     public ResponseEntity<Map<String, String>> obtenerNumeroWhatsApp() {
         Map<String, String> response = new HashMap<>();
-        response.put("numeroWhatsApp", configuracionService.getNumeroWhatsApp());
+        String numero = configuracionService.getNumeroWhatsApp();
+        response.put("numeroWhatsApp", numero);
+        response.put("numero", numero); // Alias para compatibilidad
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/whatsapp")
-    public ResponseEntity<Map<String, String>> guardarNumeroWhatsApp(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, String>> guardarNumeroWhatsAppPost(@RequestBody Map<String, String> request) {
+        return guardarNumero(request);
+    }
+
+    @PutMapping("/whatsapp")
+    public ResponseEntity<Map<String, String>> guardarNumeroWhatsAppPut(@RequestBody Map<String, String> request) {
+        return guardarNumero(request);
+    }
+
+    private ResponseEntity<Map<String, String>> guardarNumero(Map<String, String> request) {
         try {
-            String numero = request.get("numeroWhatsApp");
+            // Aceptar tanto "numero" como "numeroWhatsApp"
+            String numero = request.getOrDefault("numero", request.get("numeroWhatsApp"));
+            if (numero == null || numero.trim().isEmpty()) {
+                throw new IllegalArgumentException("El número de WhatsApp es requerido");
+            }
             configuracionService.saveNumeroWhatsApp(numero);
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Número de WhatsApp actualizado correctamente");
             response.put("numeroWhatsApp", numero);
+            response.put("numero", numero);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, String> response = new HashMap<>();

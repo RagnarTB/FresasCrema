@@ -48,6 +48,9 @@ public class ProductoApiController {
                     producto.setDescripcion(productoActualizado.getDescripcion());
                     producto.setFotoUrl(productoActualizado.getFotoUrl());
                     producto.setTipoCrema(productoActualizado.getTipoCrema());
+                    if (productoActualizado.getDisponible() != null) {
+                        producto.setDisponible(productoActualizado.getDisponible());
+                    }
                     return ResponseEntity.ok(productoRepositorio.save(producto));
                 })
                 .orElse(ResponseEntity.notFound().build());
