@@ -5,7 +5,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class adminControlador {
+public class AdminControlador {
 
     @GetMapping("/login")
     public String loginPage() {
@@ -14,7 +14,6 @@ public class adminControlador {
 
     @GetMapping("/admin/dashboard")
     public String dashboard(Model model) {
-        // Esta línea es correcta y busca 'admin/dashboard :: content'
         model.addAttribute("contenido", "admin/dashboard :: content");
         return "admin/layout";
     }

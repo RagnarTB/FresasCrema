@@ -27,8 +27,14 @@ public class ConfiguracionesControlador {
     // 2. Guardar el número de WhatsApp
     @PostMapping("/admin/configuraciones/guardar")
     public String guardarConfiguraciones(@RequestParam String whatsappNumero, RedirectAttributes redirectAttrs) {
-        configuracionService.saveNumeroWhatsApp(whatsappNumero);
-        redirectAttrs.addFlashAttribute("msgExito", "¡Número de WhatsApp actualizado!");
+        try {
+            configuracionService.saveNumeroWhatsApp(whatsappNumero);
+            redirectAttrs.addFlashAttribute("msgExito", "¡Número de WhatsApp actualizado correctamente!");
+        } catch (IllegalArgumentException e) {
+            redirectAttrs.addFlashAttribute("msgError", e.getMessage());
+        } catch (Exception e) {
+            redirectAttrs.addFlashAttribute("msgError", "Error al guardar la configuración: " + e.getMessage());
+        }
         return "redirect:/admin/configuraciones";
     }
 

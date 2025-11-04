@@ -40,12 +40,17 @@ public class ProductosControlador {
 
     // 3. Mostrar Formulario para Editar Producto
     @GetMapping("/editar/{id}")
-    public String mostrarFormEditar(@PathVariable Long id, Model model) {
-        Producto producto = productoRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("ID de producto inválido: " + id));
-        model.addAttribute("producto", producto);
-        model.addAttribute("contenido", "admin/productos :: form-producto");
-        return "admin/layout";
+    public String mostrarFormEditar(@PathVariable Long id, Model model, RedirectAttributes redirectAttrs) {
+        try {
+            Producto producto = productoRepositorio.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("ID de producto inválido: " + id));
+            model.addAttribute("producto", producto);
+            model.addAttribute("contenido", "admin/productos :: form-producto");
+            return "admin/layout";
+        } catch (IllegalArgumentException e) {
+            redirectAttrs.addFlashAttribute("msgError", "No se encontró el producto con ID: " + id);
+            return "redirect:/admin/productos";
+        }
     }
 
     // 4. Guardar (Crear o Actualizar) Producto
@@ -66,8 +71,16 @@ public class ProductosControlador {
     // 5. Eliminar Producto
     @GetMapping("/eliminar/{id}")
     public String eliminarProducto(@PathVariable Long id, RedirectAttributes redirectAttrs) {
-        productoRepositorio.deleteById(id);
-        redirectAttrs.addFlashAttribute("msgExito", "¡Producto eliminado!");
+        try {
+            if (productoRepositorio.existsById(id)) {
+                productoRepositorio.deleteById(id);
+                redirectAttrs.addFlashAttribute("msgExito", "¡Producto eliminado correctamente!");
+            } else {
+                redirectAttrs.addFlashAttribute("msgError", "No se encontró el producto a eliminar.");
+            }
+        } catch (Exception e) {
+            redirectAttrs.addFlashAttribute("msgError", "Error al eliminar el producto: " + e.getMessage());
+        }
         return "redirect:/admin/productos";
     }
 
