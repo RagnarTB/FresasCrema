@@ -1,5 +1,6 @@
 package com.fresas.crema.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -36,30 +43,96 @@ public class ConfiguracionSeguridad {
         http
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(authz -> authz
-                        // Permite acceso público al catalogo, pagina principal y archivos estaticos
-                        .requestMatchers("/", "/catalogo", "/login", "/css/**", "/js/**", "/img/**", "/admin-assets/**",
-                                "/plugins/**", "/h2-console/**")
+                        // Rutas públicas
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/cliente.css",
+                                "/cliente.js",
+                                "/api/public/**",
+                                "/admin/**/*.html",
+                                "/admin/**/*.css",
+                                "/admin/**/*.js",
+                                "/h2-console/**")
                         .permitAll()
-                        // El resto de peticiones (ej. /admin/**) requieren autenticación
+                        // Rutas protegidas del admin
+                        .requestMatchers("/api/admin/**").authenticated()
+                        // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated())
                 .formLogin(form -> form
-                        // Página de login personalizada
-                        .loginPage("/login")
-                        .loginProcessingUrl("/login-check") // URL que procesa el login
-                        .defaultSuccessUrl("/admin/dashboard", true) // Redirige al dashboard
-                        .failureUrl("/login?error=true")
-                        .permitAll() // Permite a todos ver la página de login
-                )
+                        .loginProcessingUrl("/api/login") // URL que procesa el login
+                        .successHandler(authenticationSuccessHandler())
+                        .failureHandler(authenticationFailureHandler())
+                        .permitAll())
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout")
+                        .logoutUrl("/api/logout")
+                        .logoutSuccessHandler(logoutSuccessHandler())
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll())
-                // Deshabilitar CSRF para H2 console (solo para desarrollo)
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
+                // Deshabilitar CSRF para simplificar (en producción, considera habilitarlo con tokens)
+                .csrf(csrf -> csrf.disable())
+                // Permitir iframes para H2 console
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         return http.build();
     }
 
+    /**
+     * Handler de éxito de autenticación - devuelve JSON
+     */
+    @Bean
+    public AuthenticationSuccessHandler authenticationSuccessHandler() {
+        return (request, response, authentication) -> {
+            response.setStatus(200);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("success", true);
+            data.put("message", "Login exitoso");
+            data.put("username", authentication.getName());
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.getWriter().write(objectMapper.writeValueAsString(data));
+        };
+    }
+
+    /**
+     * Handler de fallo de autenticación - devuelve JSON
+     */
+    @Bean
+    public AuthenticationFailureHandler authenticationFailureHandler() {
+        return (request, response, exception) -> {
+            response.setStatus(401);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("success", false);
+            data.put("error", "Credenciales inválidas");
+            data.put("message", exception.getMessage());
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.getWriter().write(objectMapper.writeValueAsString(data));
+        };
+    }
+
+    /**
+     * Handler de logout exitoso - devuelve JSON
+     */
+    @Bean
+    public LogoutSuccessHandler logoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            response.setStatus(200);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("success", true);
+            data.put("message", "Logout exitoso");
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.getWriter().write(objectMapper.writeValueAsString(data));
+        };
+    }
 }
