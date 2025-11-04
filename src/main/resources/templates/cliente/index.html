@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:with="titulo='Bienvenido a Fresas con Crema'">
+
+<body th:replace="~{cliente/layout :: (~{::body})}">
+
+    <main th:fragment="contenido">
+
+        <div class="container-fluid bg-light p-5 text-center"
+            style="background-image: url('https://images.unsplash.com/photo-1571210160210-3c066e49c162?w=1200&q=80'); background-size: cover; background-position: center; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+            <div class="bg-white bg-opacity-75 p-4 rounded-3">
+                <h1 class="display-4 fw-bold text-danger">¡Las Mejores Fresas con Crema!</h1>
+                <p class="fs-4">Hechas con ingredientes frescos y mucho cariño.</p>
+                <a class="btn btn-primary btn-lg mt-3" th:href="@{/catalogo}" role="button">
+                    <i class="fas fa-store"></i> Ver Catálogo y Pedir
+                </a>
+            </div>
+        </div>
+
+        <div class="container mt-5">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <i class="fas fa-seedling fa-3x text-danger mb-3"></i>
+                    <h3>Ingredientes Frescos</h3>
+                    <p>Usamos solo las fresas más frescas del mercado local.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-motorcycle fa-3x text-danger mb-3"></i>
+                    <h3>Pide Fácil</h3>
+                    <p>Elige tus productos y finaliza tu pedido por WhatsApp.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-hand-holding-heart fa-3x text-danger mb-3"></i>
+                    <h3>Hecho con Amor</h3>
+                    <p>Cada pedido se prepara al momento con nuestra receta especial.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+
+</html>
