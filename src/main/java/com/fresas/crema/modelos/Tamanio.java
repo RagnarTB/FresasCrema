@@ -30,6 +30,10 @@ public class Tamanio {
     @PositiveOrZero
     private Integer jaleasIncluidas; // Ej: 1, 2
 
+    // Campo para activar/desactivar el tamaño
+    @Column(name = "disponible")
+    private Boolean disponible = true;
+
     @ManyToOne
     @JoinColumn(name = "producto_id")
     @JsonBackReference
@@ -45,6 +49,7 @@ public class Tamanio {
         this.precioBase = precioBase;
         this.toppingsIncluidos = toppingsIncluidos;
         this.jaleasIncluidas = jaleasIncluidas;
+        this.disponible = true;
         this.producto = producto;
     }
 
@@ -87,6 +92,14 @@ public class Tamanio {
 
     public void setJaleasIncluidas(Integer jaleasIncluidas) {
         this.jaleasIncluidas = jaleasIncluidas;
+    }
+
+    public Boolean getDisponible() {
+        return disponible;
+    }
+
+    public void setDisponible(Boolean disponible) {
+        this.disponible = disponible;
     }
 
     public Producto getProducto() {

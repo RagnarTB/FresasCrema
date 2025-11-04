@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,12 +24,18 @@ public class Producto {
     private String descripcion;
 
     // Guardaremos la URL de la imagen (más simple que guardar el archivo)
-    @NotEmpty(message = "La URL de la imagen no puede estar vacía")
+    // Permitir que sea opcional
+    @Column(name = "foto_url")
+    @JsonProperty("imagenUrl") // Mapear a imagenUrl para el frontend
     private String fotoUrl;
 
     // Tipo de crema: "NORMAL" o "CAFE"
     @NotEmpty(message = "El tipo de crema es obligatorio")
     private String tipoCrema = "NORMAL";
+
+    // Campo para activar/desactivar el producto
+    @Column(name = "disponible")
+    private Boolean disponible = true;
 
     // Relación con tamaños (un producto puede tener varios tamaños con distintos precios)
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -44,6 +51,7 @@ public class Producto {
         this.descripcion = descripcion;
         this.fotoUrl = fotoUrl;
         this.tipoCrema = tipoCrema;
+        this.disponible = true;
     }
 
     // Métodos helper para manejar la relación bidireccional
@@ -90,12 +98,31 @@ public class Producto {
         this.fotoUrl = fotoUrl;
     }
 
+    // Alias para compatibilidad con el frontend
+    @JsonProperty("imagenUrl")
+    public String getImagenUrl() {
+        return fotoUrl;
+    }
+
+    @JsonProperty("imagenUrl")
+    public void setImagenUrl(String imagenUrl) {
+        this.fotoUrl = imagenUrl;
+    }
+
     public String getTipoCrema() {
         return tipoCrema;
     }
 
     public void setTipoCrema(String tipoCrema) {
         this.tipoCrema = tipoCrema;
+    }
+
+    public Boolean getDisponible() {
+        return disponible;
+    }
+
+    public void setDisponible(Boolean disponible) {
+        this.disponible = disponible;
     }
 
     public List<Tamanio> getTamanios() {

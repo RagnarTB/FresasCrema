@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/tamanios")
@@ -63,11 +65,34 @@ public class TamanioApiController {
                     tamanio.setPrecioBase(tamanioActualizado.getPrecioBase());
                     tamanio.setToppingsIncluidos(tamanioActualizado.getToppingsIncluidos());
                     tamanio.setJaleasIncluidas(tamanioActualizado.getJaleasIncluidas());
+                    if (tamanioActualizado.getDisponible() != null) {
+                        tamanio.setDisponible(tamanioActualizado.getDisponible());
+                    }
                     return ResponseEntity.ok(tamanioRepositorio.save(tamanio));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // Cambiar disponibilidad del tamaño (activar/desactivar)
+    @PatchMapping("/{id}/toggle-disponible")
+    public ResponseEntity<Map<String, Object>> toggleDisponible(@PathVariable Long id) {
+        return tamanioRepositorio.findById(id)
+                .map(tamanio -> {
+                    tamanio.setDisponible(!tamanio.getDisponible());
+                    tamanioRepositorio.save(tamanio);
+
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("disponible", tamanio.getDisponible());
+                    response.put("mensaje", tamanio.getDisponible() ?
+                        "Tamaño activado" : "Tamaño desactivado");
+
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Mantener DELETE para eliminación real si es necesario (solo admin)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarTamanio(@PathVariable Long id) {
         if (tamanioRepositorio.existsById(id)) {

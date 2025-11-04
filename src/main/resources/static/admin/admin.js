@@ -86,7 +86,7 @@ function setupEventListeners() {
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
     sidebarLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault();
+            // No preventDefault - dejar que el navegador maneje el hash
 
             // Remover clase active de todos
             sidebarLinks.forEach(l => l.classList.remove('active'));
@@ -117,11 +117,21 @@ function router() {
 
     console.log('Navegando a:', hash);
 
+    // Actualizar clase active en el sidebar
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    sidebarLinks.forEach(link => {
+        const linkHash = link.getAttribute('href').slice(1);
+        if (linkHash === hash) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+
     // Mapear rutas a funciones de renderizado
     const routes = {
         'dashboard': renderDashboard,
         'productos': renderProductos,
-        'tamanios': renderTamanios,
         'toppings': renderToppings,
         'jaleas': renderJaleas,
         'adicionales': renderAdicionales,
@@ -139,7 +149,7 @@ function router() {
 /**
  * Renderiza el Dashboard
  */
-function renderDashboard() {
+async function renderDashboard() {
     const content = document.getElementById('content');
     content.innerHTML = `
         <div class="page-header">
@@ -147,7 +157,11 @@ function renderDashboard() {
             <p>Bienvenido al panel de administración de DeliBoon 🍓</p>
         </div>
 
-        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div id="dashboard-stats" class="loading">
+            <i class="fas fa-spinner fa-spin"></i> Cargando estadísticas...
+        </div>
+
+        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 24px;">
             <div class="card">
                 <h3 style="color: var(--color-primary); margin-bottom: 12px;">
                     <i class="fas fa-box"></i> Productos
@@ -155,16 +169,6 @@ function renderDashboard() {
                 <p>Gestiona los productos del catálogo</p>
                 <a href="#productos" class="btn btn-primary" style="margin-top: 12px;">
                     Ver Productos
-                </a>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--color-info); margin-bottom: 12px;">
-                    <i class="fas fa-ruler"></i> Tamaños
-                </h3>
-                <p>Configura tamaños y precios</p>
-                <a href="#tamanios" class="btn btn-primary" style="margin-top: 12px;">
-                    Ver Tamaños
                 </a>
             </div>
 
@@ -218,11 +222,70 @@ function renderDashboard() {
                 <div>
                     <strong>Panel de Administración DeliBoon</strong><br>
                     Usa el menú lateral para navegar entre las diferentes secciones.
-                    Recuerda guardar los cambios antes de salir.
+                    Los tamaños de productos se gestionan desde la sección Productos.
                 </div>
             </div>
         </div>
     `;
+
+    // Cargar estadísticas
+    await cargarEstadisticasDashboard();
+}
+
+/**
+ * Carga las estadísticas del dashboard
+ */
+async function cargarEstadisticasDashboard() {
+    try {
+        const [productos, toppings, jaleas, adicionales] = await Promise.all([
+            fetch('/api/admin/productos').then(r => r.json()),
+            fetch('/api/admin/toppings').then(r => r.json()),
+            fetch('/api/admin/jaleas').then(r => r.json()),
+            fetch('/api/admin/adicionales').then(r => r.json())
+        ]);
+
+        const statsContainer = document.getElementById('dashboard-stats');
+        const productosActivos = productos.filter(p => p.disponible).length;
+        const toppingsActivos = toppings.filter(t => t.disponible).length;
+        const jaleasActivas = jaleas.filter(j => j.disponible).length;
+        const adicionalesActivos = adicionales.filter(a => a.disponible).length;
+
+        statsContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${productosActivos}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Productos Activos</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${productos.length} total</div>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${toppingsActivos}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Toppings Disponibles</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${toppings.length} total</div>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${jaleasActivas}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Jaleas Disponibles</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${jaleas.length} total</div>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${adicionalesActivos}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Adicionales Disponibles</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${adicionales.length} total</div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+        document.getElementById('dashboard-stats').innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>No se pudieron cargar las estadísticas.</span>
+            </div>
+        `;
+    }
 }
 
 /**
@@ -342,8 +405,11 @@ function mostrarProductos(productos) {
                                 <button class="btn btn-sm btn-secondary" onclick="editarProducto(${producto.id})" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${producto.id}, '${producto.nombre}')" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
+                                <button class="btn btn-sm ${producto.disponible ? 'btn-warning' : 'btn-success'}"
+                                        onclick="toggleDisponibleProducto(${producto.id}, '${producto.nombre}', ${producto.disponible})"
+                                        title="${producto.disponible ? 'Desactivar' : 'Activar'}">
+                                    <i class="fas fa-${producto.disponible ? 'times' : 'check'}"></i>
+                                    ${producto.disponible ? 'Desactivar' : 'Activar'}
                                 </button>
                             </td>
                         </tr>
@@ -383,8 +449,11 @@ function nuevoProducto() {
         </div>
 
         <div class="form-group">
-            <label for="producto-imagen">URL de la Imagen</label>
+            <label for="producto-imagen-file">Subir Imagen</label>
+            <input type="file" id="producto-imagen-file" accept="image/*" style="margin-bottom: 8px;">
+            <small style="display: block; color: #666; margin-bottom: 8px;">O ingresa una URL:</small>
             <input type="url" id="producto-imagen" name="imagenUrl" placeholder="https://ejemplo.com/imagen.jpg">
+            <div id="imagen-preview" style="margin-top: 12px;"></div>
         </div>
 
         <div class="form-group">
@@ -394,6 +463,20 @@ function nuevoProducto() {
             </div>
         </div>
     `;
+
+    // Configurar preview de imagen
+    const fileInput = document.getElementById('producto-imagen-file');
+    const imagePreview = document.getElementById('imagen-preview');
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; border-radius: 8px;">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 
     // Configurar el evento de submit
     form.onsubmit = async (e) => {
@@ -444,8 +527,15 @@ async function editarProducto(id) {
             </div>
 
             <div class="form-group">
-                <label for="producto-imagen">URL de la Imagen</label>
+                <label for="producto-imagen-file">Cambiar Imagen</label>
+                <input type="file" id="producto-imagen-file" accept="image/*" style="margin-bottom: 8px;">
+                <small style="display: block; color: #666; margin-bottom: 8px;">O ingresa una URL:</small>
                 <input type="url" id="producto-imagen" name="imagenUrl" value="${producto.imagenUrl || ''}" placeholder="https://ejemplo.com/imagen.jpg">
+                ${producto.imagenUrl ? `
+                    <div id="imagen-preview" style="margin-top: 12px;">
+                        <img src="${producto.imagenUrl}" style="max-width: 200px; border-radius: 8px;">
+                    </div>
+                ` : '<div id="imagen-preview" style="margin-top: 12px;"></div>'}
             </div>
 
             <div class="form-group">
@@ -455,6 +545,22 @@ async function editarProducto(id) {
                 </div>
             </div>
         `;
+
+        // Configurar preview de imagen
+        const fileInput = document.getElementById('producto-imagen-file');
+        const imagePreview = document.getElementById('imagen-preview');
+        if (fileInput && imagePreview) {
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; border-radius: 8px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
 
         // Configurar el evento de submit
         form.onsubmit = async (e) => {
@@ -476,18 +582,38 @@ async function guardarProducto(id = null) {
     const nombre = document.getElementById('producto-nombre').value;
     const descripcion = document.getElementById('producto-descripcion').value;
     const tipoCrema = document.getElementById('producto-tipo-crema').value;
-    const imagenUrl = document.getElementById('producto-imagen').value;
+    let imagenUrl = document.getElementById('producto-imagen').value;
     const disponible = document.getElementById('producto-disponible').checked;
-
-    const producto = {
-        nombre,
-        descripcion,
-        tipoCrema,
-        imagenUrl,
-        disponible
-    };
+    const fileInput = document.getElementById('producto-imagen-file');
 
     try {
+        // Si hay un archivo seleccionado, subirlo primero
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadResponse = await fetch('/api/admin/imagenes', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Error al subir la imagen');
+            }
+
+            const uploadData = await uploadResponse.json();
+            imagenUrl = uploadData.url;
+        }
+
+        const producto = {
+            nombre,
+            descripcion,
+            tipoCrema,
+            imagenUrl,
+            disponible
+        };
+
         const url = id ? `/api/admin/productos/${id}` : '/api/admin/productos';
         const method = id ? 'PUT' : 'POST';
 
@@ -513,27 +639,38 @@ async function guardarProducto(id = null) {
 }
 
 /**
- * Elimina un producto
+ * Activa o desactiva un producto
  */
-async function eliminarProducto(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el producto "${nombre}"?\n\nEsta acción eliminará también todos sus tamaños asociados.`)) {
+async function toggleDisponibleProducto(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el producto "${nombre}"?\n\nLos clientes ${disponibleActual ? 'NO' : 'SÍ'} podrán verlo en el catálogo.`)) {
         return;
     }
 
     try {
+        // Obtener el producto actual
+        const getResponse = await fetch(`/api/admin/productos/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener el producto');
+
+        const producto = await getResponse.json();
+        producto.disponible = !disponibleActual;
+
+        // Actualizar el producto
         const response = await fetch(`/api/admin/productos/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(producto)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el producto');
+            throw new Error('Error al actualizar el producto');
         }
 
-        showAlert('Producto eliminado exitosamente', 'success');
+        showAlert(`Producto ${accion}do exitosamente`, 'success');
         await cargarProductos();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el producto', 'danger');
+        showAlert(`Error al ${accion} el producto`, 'danger');
     }
 }
 
@@ -589,6 +726,7 @@ async function verTamanios(productoId) {
                                     <th>Precio Base</th>
                                     <th>Toppings Incl.</th>
                                     <th>Jaleas Incl.</th>
+                                    <th>Disponible</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -600,11 +738,20 @@ async function verTamanios(productoId) {
                                         <td>${tam.toppingsIncluidos}</td>
                                         <td>${tam.jaleasIncluidas}</td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-secondary" onclick="editarTamanio(${tam.id})">
+                                            <span style="color: ${tam.disponible ? 'var(--color-success)' : 'var(--color-danger)'}">
+                                                <i class="fas fa-${tam.disponible ? 'check-circle' : 'times-circle'}"></i>
+                                                ${tam.disponible ? 'Sí' : 'No'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-secondary" onclick="editarTamanio(${tam.id})" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="eliminarTamanio(${tam.id}, '${tam.nombre}')">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="button" class="btn btn-sm ${tam.disponible ? 'btn-warning' : 'btn-success'}"
+                                                    onclick="toggleDisponibleTamanio(${tam.id}, '${tam.nombre}', ${tam.disponible}, ${productoId})"
+                                                    title="${tam.disponible ? 'Desactivar' : 'Activar'}">
+                                                <i class="fas fa-${tam.disponible ? 'times' : 'check'}"></i>
+                                                ${tam.disponible ? 'Desactivar' : 'Activar'}
                                             </button>
                                         </td>
                                     </tr>
@@ -629,29 +776,6 @@ async function verTamanios(productoId) {
     }
 }
 
-/**
- * Renderiza la página de Tamaños
- */
-async function renderTamanios() {
-    const content = document.getElementById('content');
-    content.innerHTML = `
-        <div class="page-header">
-            <h1>Tamaños</h1>
-            <p>Gestión de tamaños y precios</p>
-        </div>
-
-        <div class="card">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                <div>
-                    <strong>Tip:</strong> Los tamaños se gestionan individualmente desde cada producto.
-                    Ve a <a href="#productos" style="color: var(--color-primary); font-weight: 700;">Productos</a>
-                    y haz clic en el botón de tamaños <i class="fas fa-ruler"></i> para configurarlos.
-                </div>
-            </div>
-        </div>
-    `;
-}
 
 /**
  * Crea un nuevo tamaño para un producto específico
@@ -661,48 +785,53 @@ function nuevoTamanioParaProducto(productoId) {
     const modalTitle = document.getElementById('modal-title');
     const formContainer = document.getElementById('entity-form');
 
-    // Crear un nuevo modal más pequeño
+    // No cerrar el modal, solo actualizar su contenido
     modalTitle.textContent = 'Nuevo Tamaño';
 
-    const newForm = document.createElement('form');
-    newForm.id = 'tamanio-form';
-    newForm.innerHTML = `
-        <input type="hidden" id="tamanio-producto-id" value="${productoId}">
+    formContainer.innerHTML = `
+        <form id="tamanio-form">
+            <input type="hidden" id="tamanio-producto-id" value="${productoId}">
 
-        <div class="form-group">
-            <label for="tamanio-nombre">Nombre del Tamaño *</label>
-            <input type="text" id="tamanio-nombre" name="nombre" required placeholder="Ej: Personal, Mediano, Grande">
-        </div>
+            <div class="form-group">
+                <label for="tamanio-nombre">Nombre del Tamaño *</label>
+                <input type="text" id="tamanio-nombre" name="nombre" required placeholder="Ej: Personal, Mediano, Grande">
+            </div>
 
-        <div class="form-group">
-            <label for="tamanio-precio">Precio Base (S/) *</label>
-            <input type="number" id="tamanio-precio" name="precioBase" step="0.01" min="0" required>
-        </div>
+            <div class="form-group">
+                <label for="tamanio-precio">Precio Base (S/) *</label>
+                <input type="number" id="tamanio-precio" name="precioBase" step="0.01" min="0" required>
+            </div>
 
-        <div class="form-group">
-            <label for="tamanio-toppings">Toppings Incluidos *</label>
-            <input type="number" id="tamanio-toppings" name="toppingsIncluidos" min="0" required>
-        </div>
+            <div class="form-group">
+                <label for="tamanio-toppings">Toppings Incluidos *</label>
+                <input type="number" id="tamanio-toppings" name="toppingsIncluidos" min="0" required>
+            </div>
 
-        <div class="form-group">
-            <label for="tamanio-jaleas">Jaleas Incluidas *</label>
-            <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" min="0" required>
-        </div>
+            <div class="form-group">
+                <label for="tamanio-jaleas">Jaleas Incluidas *</label>
+                <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" id="tamanio-disponible" name="disponible" checked>
+                    <label for="tamanio-disponible">Tamaño disponible</label>
+                </div>
+            </div>
+        </form>
     `;
 
-    newForm.onsubmit = async (e) => {
+    // Configurar el submit del formulario
+    const form = document.getElementById('tamanio-form');
+    form.onsubmit = async (e) => {
         e.preventDefault();
         await guardarTamanio(productoId);
     };
 
-    formContainer.innerHTML = '';
-    formContainer.appendChild(newForm);
-
-    // Cerrar el modal anterior y abrir el nuevo
-    closeModal();
-    setTimeout(() => {
+    // Asegurarse de que el modal esté visible
+    if (!modal.classList.contains('show')) {
         modal.classList.add('show');
-    }, 100);
+    }
 }
 
 /**
@@ -724,45 +853,51 @@ async function editarTamanio(tamanioId) {
 
         modalTitle.textContent = 'Editar Tamaño';
 
-        const newForm = document.createElement('form');
-        newForm.id = 'tamanio-form';
-        newForm.innerHTML = `
-            <input type="hidden" id="tamanio-id" value="${tamanio.id}">
-            <input type="hidden" id="tamanio-producto-id" value="${tamanio.producto.id}">
+        formContainer.innerHTML = `
+            <form id="tamanio-form">
+                <input type="hidden" id="tamanio-id" value="${tamanio.id}">
+                <input type="hidden" id="tamanio-producto-id" value="${tamanio.producto.id}">
 
-            <div class="form-group">
-                <label for="tamanio-nombre">Nombre del Tamaño *</label>
-                <input type="text" id="tamanio-nombre" name="nombre" value="${tamanio.nombre}" required>
-            </div>
+                <div class="form-group">
+                    <label for="tamanio-nombre">Nombre del Tamaño *</label>
+                    <input type="text" id="tamanio-nombre" name="nombre" value="${tamanio.nombre}" required>
+                </div>
 
-            <div class="form-group">
-                <label for="tamanio-precio">Precio Base (S/) *</label>
-                <input type="number" id="tamanio-precio" name="precioBase" value="${tamanio.precioBase}" step="0.01" min="0" required>
-            </div>
+                <div class="form-group">
+                    <label for="tamanio-precio">Precio Base (S/) *</label>
+                    <input type="number" id="tamanio-precio" name="precioBase" value="${tamanio.precioBase}" step="0.01" min="0" required>
+                </div>
 
-            <div class="form-group">
-                <label for="tamanio-toppings">Toppings Incluidos *</label>
-                <input type="number" id="tamanio-toppings" name="toppingsIncluidos" value="${tamanio.toppingsIncluidos}" min="0" required>
-            </div>
+                <div class="form-group">
+                    <label for="tamanio-toppings">Toppings Incluidos *</label>
+                    <input type="number" id="tamanio-toppings" name="toppingsIncluidos" value="${tamanio.toppingsIncluidos}" min="0" required>
+                </div>
 
-            <div class="form-group">
-                <label for="tamanio-jaleas">Jaleas Incluidas *</label>
-                <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" value="${tamanio.jaleasIncluidas}" min="0" required>
-            </div>
+                <div class="form-group">
+                    <label for="tamanio-jaleas">Jaleas Incluidas *</label>
+                    <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" value="${tamanio.jaleasIncluidas}" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <div class="form-check">
+                        <input type="checkbox" id="tamanio-disponible" name="disponible" ${tamanio.disponible ? 'checked' : ''}>
+                        <label for="tamanio-disponible">Tamaño disponible</label>
+                    </div>
+                </div>
+            </form>
         `;
 
-        newForm.onsubmit = async (e) => {
+        // Configurar el submit del formulario
+        const form = document.getElementById('tamanio-form');
+        form.onsubmit = async (e) => {
             e.preventDefault();
             await guardarTamanio(tamanio.producto.id, tamanio.id);
         };
 
-        formContainer.innerHTML = '';
-        formContainer.appendChild(newForm);
-
-        closeModal();
-        setTimeout(() => {
+        // Asegurarse de que el modal esté visible
+        if (!modal.classList.contains('show')) {
             modal.classList.add('show');
-        }, 100);
+        }
     } catch (error) {
         console.error('Error:', error);
         showAlert('Error al cargar el tamaño', 'danger');
@@ -777,12 +912,14 @@ async function guardarTamanio(productoId, tamanioId = null) {
     const precioBase = parseFloat(document.getElementById('tamanio-precio').value);
     const toppingsIncluidos = parseInt(document.getElementById('tamanio-toppings').value);
     const jaleasIncluidas = parseInt(document.getElementById('tamanio-jaleas').value);
+    const disponible = document.getElementById('tamanio-disponible').checked;
 
     const tamanio = {
         nombre,
         precioBase,
         toppingsIncluidos,
         jaleasIncluidas,
+        disponible,
         producto: { id: productoId }
     };
 
@@ -814,34 +951,31 @@ async function guardarTamanio(productoId, tamanioId = null) {
 }
 
 /**
- * Elimina un tamaño
+ * Activa o desactiva un tamaño
  */
-async function eliminarTamanio(tamanioId, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el tamaño "${nombre}"?`)) {
+async function toggleDisponibleTamanio(tamanioId, nombre, disponibleActual, productoId) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el tamaño "${nombre}"?\n\nLos clientes ${disponibleActual ? 'NO' : 'SÍ'} podrán seleccionar este tamaño.`)) {
         return;
     }
 
     try {
-        // Primero obtener el productoId antes de eliminar
-        const tamanioResponse = await fetch(`/api/admin/tamanios/${tamanioId}`);
-        const tamanio = await tamanioResponse.json();
-        const productoId = tamanio.producto.id;
-
-        const response = await fetch(`/api/admin/tamanios/${tamanioId}`, {
-            method: 'DELETE'
+        const response = await fetch(`/api/admin/tamanios/${tamanioId}/toggle-disponible`, {
+            method: 'PATCH'
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el tamaño');
+            throw new Error('Error al actualizar el tamaño');
         }
 
-        showAlert('Tamaño eliminado exitosamente', 'success');
+        const data = await response.json();
+        showAlert(data.mensaje || `Tamaño ${accion}do exitosamente`, 'success');
 
         // Recargar la vista de tamaños del producto
         await verTamanios(productoId);
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el tamaño', 'danger');
+        showAlert(`Error al ${accion} el tamaño`, 'danger');
     }
 }
 
@@ -920,8 +1054,11 @@ async function cargarToppings() {
                                     <button class="btn btn-sm btn-secondary" onclick="editarTopping(${topping.id})" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarTopping(${topping.id}, '${topping.nombre}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn btn-sm ${topping.disponible ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleDisponibleTopping(${topping.id}, '${topping.nombre}', ${topping.disponible})"
+                                            title="${topping.disponible ? 'Desactivar' : 'Activar'}">
+                                        <i class="fas fa-${topping.disponible ? 'times' : 'check'}"></i>
+                                        ${topping.disponible ? 'Desactivar' : 'Activar'}
                                     </button>
                                 </td>
                             </tr>
@@ -1041,25 +1178,34 @@ async function guardarTopping(id = null) {
     }
 }
 
-async function eliminarTopping(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el topping "${nombre}"?`)) {
+async function toggleDisponibleTopping(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el topping "${nombre}"?`)) {
         return;
     }
 
     try {
+        const getResponse = await fetch(`/api/admin/toppings/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener el topping');
+
+        const topping = await getResponse.json();
+        topping.disponible = !disponibleActual;
+
         const response = await fetch(`/api/admin/toppings/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(topping)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el topping');
+            throw new Error('Error al actualizar el topping');
         }
 
-        showAlert('Topping eliminado exitosamente', 'success');
+        showAlert(`Topping ${accion}do exitosamente`, 'success');
         await cargarToppings();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el topping', 'danger');
+        showAlert(`Error al ${accion} el topping`, 'danger');
     }
 }
 
@@ -1138,8 +1284,11 @@ async function cargarJaleas() {
                                     <button class="btn btn-sm btn-secondary" onclick="editarJalea(${jalea.id})" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarJalea(${jalea.id}, '${jalea.nombre}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn btn-sm ${jalea.disponible ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleDisponibleJalea(${jalea.id}, '${jalea.nombre}', ${jalea.disponible})"
+                                            title="${jalea.disponible ? 'Desactivar' : 'Activar'}">
+                                        <i class="fas fa-${jalea.disponible ? 'times' : 'check'}"></i>
+                                        ${jalea.disponible ? 'Desactivar' : 'Activar'}
                                     </button>
                                 </td>
                             </tr>
@@ -1259,25 +1408,34 @@ async function guardarJalea(id = null) {
     }
 }
 
-async function eliminarJalea(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar la jalea "${nombre}"?`)) {
+async function toggleDisponibleJalea(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} la jalea "${nombre}"?`)) {
         return;
     }
 
     try {
+        const getResponse = await fetch(`/api/admin/jaleas/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener la jalea');
+
+        const jalea = await getResponse.json();
+        jalea.disponible = !disponibleActual;
+
         const response = await fetch(`/api/admin/jaleas/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jalea)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar la jalea');
+            throw new Error('Error al actualizar la jalea');
         }
 
-        showAlert('Jalea eliminada exitosamente', 'success');
+        showAlert(`Jalea ${accion}da exitosamente`, 'success');
         await cargarJaleas();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar la jalea', 'danger');
+        showAlert(`Error al ${accion} la jalea`, 'danger');
     }
 }
 
@@ -1358,8 +1516,11 @@ async function cargarAdicionales() {
                                     <button class="btn btn-sm btn-secondary" onclick="editarAdicional(${adicional.id})" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarAdicional(${adicional.id}, '${adicional.nombre}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn btn-sm ${adicional.disponible ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleDisponibleAdicional(${adicional.id}, '${adicional.nombre}', ${adicional.disponible})"
+                                            title="${adicional.disponible ? 'Desactivar' : 'Activar'}">
+                                        <i class="fas fa-${adicional.disponible ? 'times' : 'check'}"></i>
+                                        ${adicional.disponible ? 'Desactivar' : 'Activar'}
                                     </button>
                                 </td>
                             </tr>
@@ -1490,25 +1651,34 @@ async function guardarAdicional(id = null) {
     }
 }
 
-async function eliminarAdicional(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el adicional "${nombre}"?`)) {
+async function toggleDisponibleAdicional(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el adicional "${nombre}"?`)) {
         return;
     }
 
     try {
+        const getResponse = await fetch(`/api/admin/adicionales/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener el adicional');
+
+        const adicional = await getResponse.json();
+        adicional.disponible = !disponibleActual;
+
         const response = await fetch(`/api/admin/adicionales/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(adicional)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el adicional');
+            throw new Error('Error al actualizar el adicional');
         }
 
-        showAlert('Adicional eliminado exitosamente', 'success');
+        showAlert(`Adicional ${accion}do exitosamente`, 'success');
         await cargarAdicionales();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el adicional', 'danger');
+        showAlert(`Error al ${accion} el adicional`, 'danger');
     }
 }
 
@@ -1740,25 +1910,25 @@ window.showAlert = showAlert;
 // Productos
 window.nuevoProducto = nuevoProducto;
 window.editarProducto = editarProducto;
-window.eliminarProducto = eliminarProducto;
+window.toggleDisponibleProducto = toggleDisponibleProducto;
 window.verTamanios = verTamanios;
 
 // Tamaños
 window.nuevoTamanioParaProducto = nuevoTamanioParaProducto;
 window.editarTamanio = editarTamanio;
-window.eliminarTamanio = eliminarTamanio;
+window.toggleDisponibleTamanio = toggleDisponibleTamanio;
 
 // Toppings
 window.nuevoTopping = nuevoTopping;
 window.editarTopping = editarTopping;
-window.eliminarTopping = eliminarTopping;
+window.toggleDisponibleTopping = toggleDisponibleTopping;
 
 // Jaleas
 window.nuevaJalea = nuevaJalea;
 window.editarJalea = editarJalea;
-window.eliminarJalea = eliminarJalea;
+window.toggleDisponibleJalea = toggleDisponibleJalea;
 
 // Adicionales
 window.nuevoAdicional = nuevoAdicional;
 window.editarAdicional = editarAdicional;
-window.eliminarAdicional = eliminarAdicional;
+window.toggleDisponibleAdicional = toggleDisponibleAdicional;

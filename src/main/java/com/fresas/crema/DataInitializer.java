@@ -5,6 +5,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.fresas.crema.enums.Role;
 import com.fresas.crema.modelos.*;
 import com.fresas.crema.repositorios.*;
 
@@ -38,14 +39,23 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        // 1. Crear usuario admin si no existe
-        if (usuarioRepository.findByUsername("admin") == null) {
+        // 1. Crear o verificar usuario admin
+        Usuario adminUser = usuarioRepository.findByUsername("admin");
+        if (adminUser == null) {
+            // Crear nuevo usuario admin
             Usuario admin = new Usuario();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setRole("ROLE_ADMIN");
+            admin.setRole(Role.ADMIN);
             usuarioRepository.save(admin);
-            System.out.println("✓ Usuario admin creado");
+            System.out.println("✓ Usuario admin creado con rol: " + Role.ADMIN.getDisplayName());
+        } else {
+            // Verificar que el admin tenga el rol correcto
+            if (adminUser.getRole() != Role.ADMIN) {
+                adminUser.setRole(Role.ADMIN);
+                usuarioRepository.save(adminUser);
+                System.out.println("✓ Rol de admin actualizado a: " + Role.ADMIN.getDisplayName());
+            }
         }
 
         // 2. Verificar si ya hay datos en la base de datos

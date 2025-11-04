@@ -19,14 +19,14 @@ public class CustomUserDetailService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         com.fresas.crema.modelos.Usuario usuario = usuarioRepositorio.findByUsername(username);
         if (usuario == null) {
-            throw new UsernameNotFoundException("usuario no encontrado");
+            throw new UsernameNotFoundException("Usuario no encontrado: " + username);
         }
 
+        // Usar el enum Role para obtener el rol sin el prefijo ROLE_
         return User.withUsername(usuario.getUsername())
                 .password(usuario.getPassword())
-                .roles(usuario.getRole().replace("ROLE_", ""))
+                .roles(usuario.getRole().getRoleName())
                 .build();
-
     }
 
 }

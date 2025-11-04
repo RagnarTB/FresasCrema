@@ -14,6 +14,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,28 +41,39 @@ public class ConfiguracionSeguridad {
         return authProvider;
     }
 
+    /**
+     * Configurar firewall para permitir jsessionid en URLs
+     */
+    @Bean
+    public HttpFirewall allowUrlEncodedSlashHttpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        firewall.setAllowSemicolon(true); // Permite ; en URLs (para jsessionid)
+        return firewall;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(authz -> authz
-                        // Rutas públicas
-                        .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/cliente.css",
-                                "/cliente.js",
-                                "/api/public/**",
-                                "/admin/**/*.html",
-                                "/admin/**/*.css",
-                                "/admin/**/*.js",
-                                "/h2-console/**")
-                        .permitAll()
-                        // Rutas protegidas del admin
+                        // Rutas públicas - Archivos estáticos del cliente
+                        .requestMatchers("/", "/index.html", "/style.css", "/script.js").permitAll()
+                        // API pública
+                        .requestMatchers("/api/public/**").permitAll()
+                        // Imágenes subidas (públicas para clientes)
+                        .requestMatchers("/uploads/**").permitAll()
+                        // Archivos estáticos del admin (HTML, CSS, JS) - sin autenticación
+                        .requestMatchers("/admin/**").permitAll()
+                        // Consola H2 solo para desarrollo
+                        .requestMatchers("/h2-console/**").permitAll()
+                        // Actuator health check (público para monitoreo)
+                        .requestMatchers("/actuator/health/**").permitAll()
+                        // Rutas protegidas de la API admin
                         .requestMatchers("/api/admin/**").authenticated()
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated())
                 .formLogin(form -> form
+                        .loginPage("/admin/login.html") // Página de login personalizada
                         .loginProcessingUrl("/api/login") // URL que procesa el login
                         .successHandler(authenticationSuccessHandler())
                         .failureHandler(authenticationFailureHandler())
@@ -70,10 +84,39 @@ public class ConfiguracionSeguridad {
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll())
-                // Deshabilitar CSRF para simplificar (en producción, considera habilitarlo con tokens)
-                .csrf(csrf -> csrf.disable())
-                // Permitir iframes para H2 console
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+                // CSRF Protection (deshabilitado para API REST por ser SPA)
+                .csrf(csrf -> csrf
+                        // Desactivar CSRF para la API pública, login y admin (SPA sin tokens CSRF)
+                        .ignoringRequestMatchers("/api/public/**", "/api/login", "/api/admin/**")
+                )
+                // Headers de seguridad mejorados
+                .headers(headers -> headers
+                        // Protección contra clickjacking
+                        .frameOptions(frame -> frame.sameOrigin())
+                        // XSS Protection
+                        .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                        // Content Type Options
+                        .contentTypeOptions(contentType -> {})
+                        // Content Security Policy (CSP)
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives("default-src 'self'; " +
+                                        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
+                                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+                                        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
+                                        "img-src 'self' data: https:; " +
+                                        "connect-src 'self'"))
+                        // HTTP Strict Transport Security (HSTS) - Forzar HTTPS en producción
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000)) // 1 año
+                )
+                // Protección contra Session Fixation
+                .sessionManagement(session -> session
+                        .sessionFixation().newSession()
+                        .maximumSessions(1) // Máximo 1 sesión por usuario
+                        .maxSessionsPreventsLogin(false) // Permitir login cerrando sesión anterior
+                );
+
         return http.build();
     }
 
