@@ -25,6 +25,9 @@ FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
+# Instalar curl para health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Copiar el JAR compilado desde la etapa de build
 COPY --from=build /app/target/*.jar app.jar
 

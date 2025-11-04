@@ -43,19 +43,17 @@ public class ConfiguracionSeguridad {
         http
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(authz -> authz
-                        // Rutas públicas
-                        .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/cliente.css",
-                                "/cliente.js",
-                                "/api/public/**",
-                                "/admin/**/*.html",
-                                "/admin/**/*.css",
-                                "/admin/**/*.js",
-                                "/h2-console/**")
-                        .permitAll()
-                        // Rutas protegidas del admin
+                        // Rutas públicas - Archivos estáticos del cliente
+                        .requestMatchers("/", "/index.html", "/style.css", "/script.js").permitAll()
+                        // API pública
+                        .requestMatchers("/api/public/**").permitAll()
+                        // Archivos estáticos del admin (HTML, CSS, JS)
+                        .requestMatchers("/admin/**").permitAll()
+                        // Consola H2 para desarrollo
+                        .requestMatchers("/h2-console/**").permitAll()
+                        // Actuator health check
+                        .requestMatchers("/actuator/health/**").permitAll()
+                        // Rutas protegidas de la API admin
                         .requestMatchers("/api/admin/**").authenticated()
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated())
