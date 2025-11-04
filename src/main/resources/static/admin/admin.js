@@ -86,7 +86,7 @@ function setupEventListeners() {
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
     sidebarLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault();
+            // No preventDefault - dejar que el navegador maneje el hash
 
             // Remover clase active de todos
             sidebarLinks.forEach(l => l.classList.remove('active'));
@@ -117,11 +117,21 @@ function router() {
 
     console.log('Navegando a:', hash);
 
+    // Actualizar clase active en el sidebar
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    sidebarLinks.forEach(link => {
+        const linkHash = link.getAttribute('href').slice(1);
+        if (linkHash === hash) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+
     // Mapear rutas a funciones de renderizado
     const routes = {
         'dashboard': renderDashboard,
         'productos': renderProductos,
-        'tamanios': renderTamanios,
         'toppings': renderToppings,
         'jaleas': renderJaleas,
         'adicionales': renderAdicionales,
@@ -139,7 +149,7 @@ function router() {
 /**
  * Renderiza el Dashboard
  */
-function renderDashboard() {
+async function renderDashboard() {
     const content = document.getElementById('content');
     content.innerHTML = `
         <div class="page-header">
@@ -147,7 +157,11 @@ function renderDashboard() {
             <p>Bienvenido al panel de administración de DeliBoon 🍓</p>
         </div>
 
-        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div id="dashboard-stats" class="loading">
+            <i class="fas fa-spinner fa-spin"></i> Cargando estadísticas...
+        </div>
+
+        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 24px;">
             <div class="card">
                 <h3 style="color: var(--color-primary); margin-bottom: 12px;">
                     <i class="fas fa-box"></i> Productos
@@ -155,16 +169,6 @@ function renderDashboard() {
                 <p>Gestiona los productos del catálogo</p>
                 <a href="#productos" class="btn btn-primary" style="margin-top: 12px;">
                     Ver Productos
-                </a>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--color-info); margin-bottom: 12px;">
-                    <i class="fas fa-ruler"></i> Tamaños
-                </h3>
-                <p>Configura tamaños y precios</p>
-                <a href="#tamanios" class="btn btn-primary" style="margin-top: 12px;">
-                    Ver Tamaños
                 </a>
             </div>
 
@@ -218,11 +222,70 @@ function renderDashboard() {
                 <div>
                     <strong>Panel de Administración DeliBoon</strong><br>
                     Usa el menú lateral para navegar entre las diferentes secciones.
-                    Recuerda guardar los cambios antes de salir.
+                    Los tamaños de productos se gestionan desde la sección Productos.
                 </div>
             </div>
         </div>
     `;
+
+    // Cargar estadísticas
+    await cargarEstadisticasDashboard();
+}
+
+/**
+ * Carga las estadísticas del dashboard
+ */
+async function cargarEstadisticasDashboard() {
+    try {
+        const [productos, toppings, jaleas, adicionales] = await Promise.all([
+            fetch('/api/admin/productos').then(r => r.json()),
+            fetch('/api/admin/toppings').then(r => r.json()),
+            fetch('/api/admin/jaleas').then(r => r.json()),
+            fetch('/api/admin/adicionales').then(r => r.json())
+        ]);
+
+        const statsContainer = document.getElementById('dashboard-stats');
+        const productosActivos = productos.filter(p => p.disponible).length;
+        const toppingsActivos = toppings.filter(t => t.disponible).length;
+        const jaleasActivas = jaleas.filter(j => j.disponible).length;
+        const adicionalesActivos = adicionales.filter(a => a.disponible).length;
+
+        statsContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${productosActivos}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Productos Activos</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${productos.length} total</div>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${toppingsActivos}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Toppings Disponibles</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${toppings.length} total</div>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${jaleasActivas}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Jaleas Disponibles</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${jaleas.length} total</div>
+                </div>
+
+                <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; text-align: center;">
+                    <div style="font-size: 3rem; font-weight: 700;">${adicionalesActivos}</div>
+                    <div style="font-size: 1.1rem; opacity: 0.9;">Adicionales Disponibles</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 8px;">${adicionales.length} total</div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+        document.getElementById('dashboard-stats').innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>No se pudieron cargar las estadísticas.</span>
+            </div>
+        `;
+    }
 }
 
 /**
@@ -342,8 +405,11 @@ function mostrarProductos(productos) {
                                 <button class="btn btn-sm btn-secondary" onclick="editarProducto(${producto.id})" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${producto.id}, '${producto.nombre}')" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
+                                <button class="btn btn-sm ${producto.disponible ? 'btn-warning' : 'btn-success'}"
+                                        onclick="toggleDisponibleProducto(${producto.id}, '${producto.nombre}', ${producto.disponible})"
+                                        title="${producto.disponible ? 'Desactivar' : 'Activar'}">
+                                    <i class="fas fa-${producto.disponible ? 'times' : 'check'}"></i>
+                                    ${producto.disponible ? 'Desactivar' : 'Activar'}
                                 </button>
                             </td>
                         </tr>
@@ -513,27 +579,38 @@ async function guardarProducto(id = null) {
 }
 
 /**
- * Elimina un producto
+ * Activa o desactiva un producto
  */
-async function eliminarProducto(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el producto "${nombre}"?\n\nEsta acción eliminará también todos sus tamaños asociados.`)) {
+async function toggleDisponibleProducto(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el producto "${nombre}"?\n\nLos clientes ${disponibleActual ? 'NO' : 'SÍ'} podrán verlo en el catálogo.`)) {
         return;
     }
 
     try {
+        // Obtener el producto actual
+        const getResponse = await fetch(`/api/admin/productos/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener el producto');
+
+        const producto = await getResponse.json();
+        producto.disponible = !disponibleActual;
+
+        // Actualizar el producto
         const response = await fetch(`/api/admin/productos/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(producto)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el producto');
+            throw new Error('Error al actualizar el producto');
         }
 
-        showAlert('Producto eliminado exitosamente', 'success');
+        showAlert(`Producto ${accion}do exitosamente`, 'success');
         await cargarProductos();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el producto', 'danger');
+        showAlert(`Error al ${accion} el producto`, 'danger');
     }
 }
 
@@ -629,29 +706,6 @@ async function verTamanios(productoId) {
     }
 }
 
-/**
- * Renderiza la página de Tamaños
- */
-async function renderTamanios() {
-    const content = document.getElementById('content');
-    content.innerHTML = `
-        <div class="page-header">
-            <h1>Tamaños</h1>
-            <p>Gestión de tamaños y precios</p>
-        </div>
-
-        <div class="card">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                <div>
-                    <strong>Tip:</strong> Los tamaños se gestionan individualmente desde cada producto.
-                    Ve a <a href="#productos" style="color: var(--color-primary); font-weight: 700;">Productos</a>
-                    y haz clic en el botón de tamaños <i class="fas fa-ruler"></i> para configurarlos.
-                </div>
-            </div>
-        </div>
-    `;
-}
 
 /**
  * Crea un nuevo tamaño para un producto específico
@@ -920,8 +974,11 @@ async function cargarToppings() {
                                     <button class="btn btn-sm btn-secondary" onclick="editarTopping(${topping.id})" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarTopping(${topping.id}, '${topping.nombre}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn btn-sm ${topping.disponible ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleDisponibleTopping(${topping.id}, '${topping.nombre}', ${topping.disponible})"
+                                            title="${topping.disponible ? 'Desactivar' : 'Activar'}">
+                                        <i class="fas fa-${topping.disponible ? 'times' : 'check'}"></i>
+                                        ${topping.disponible ? 'Desactivar' : 'Activar'}
                                     </button>
                                 </td>
                             </tr>
@@ -1041,25 +1098,34 @@ async function guardarTopping(id = null) {
     }
 }
 
-async function eliminarTopping(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el topping "${nombre}"?`)) {
+async function toggleDisponibleTopping(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el topping "${nombre}"?`)) {
         return;
     }
 
     try {
+        const getResponse = await fetch(`/api/admin/toppings/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener el topping');
+
+        const topping = await getResponse.json();
+        topping.disponible = !disponibleActual;
+
         const response = await fetch(`/api/admin/toppings/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(topping)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el topping');
+            throw new Error('Error al actualizar el topping');
         }
 
-        showAlert('Topping eliminado exitosamente', 'success');
+        showAlert(`Topping ${accion}do exitosamente`, 'success');
         await cargarToppings();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el topping', 'danger');
+        showAlert(`Error al ${accion} el topping`, 'danger');
     }
 }
 
@@ -1138,8 +1204,11 @@ async function cargarJaleas() {
                                     <button class="btn btn-sm btn-secondary" onclick="editarJalea(${jalea.id})" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarJalea(${jalea.id}, '${jalea.nombre}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn btn-sm ${jalea.disponible ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleDisponibleJalea(${jalea.id}, '${jalea.nombre}', ${jalea.disponible})"
+                                            title="${jalea.disponible ? 'Desactivar' : 'Activar'}">
+                                        <i class="fas fa-${jalea.disponible ? 'times' : 'check'}"></i>
+                                        ${jalea.disponible ? 'Desactivar' : 'Activar'}
                                     </button>
                                 </td>
                             </tr>
@@ -1259,25 +1328,34 @@ async function guardarJalea(id = null) {
     }
 }
 
-async function eliminarJalea(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar la jalea "${nombre}"?`)) {
+async function toggleDisponibleJalea(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} la jalea "${nombre}"?`)) {
         return;
     }
 
     try {
+        const getResponse = await fetch(`/api/admin/jaleas/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener la jalea');
+
+        const jalea = await getResponse.json();
+        jalea.disponible = !disponibleActual;
+
         const response = await fetch(`/api/admin/jaleas/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jalea)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar la jalea');
+            throw new Error('Error al actualizar la jalea');
         }
 
-        showAlert('Jalea eliminada exitosamente', 'success');
+        showAlert(`Jalea ${accion}da exitosamente`, 'success');
         await cargarJaleas();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar la jalea', 'danger');
+        showAlert(`Error al ${accion} la jalea`, 'danger');
     }
 }
 
@@ -1358,8 +1436,11 @@ async function cargarAdicionales() {
                                     <button class="btn btn-sm btn-secondary" onclick="editarAdicional(${adicional.id})" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarAdicional(${adicional.id}, '${adicional.nombre}')" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button class="btn btn-sm ${adicional.disponible ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleDisponibleAdicional(${adicional.id}, '${adicional.nombre}', ${adicional.disponible})"
+                                            title="${adicional.disponible ? 'Desactivar' : 'Activar'}">
+                                        <i class="fas fa-${adicional.disponible ? 'times' : 'check'}"></i>
+                                        ${adicional.disponible ? 'Desactivar' : 'Activar'}
                                     </button>
                                 </td>
                             </tr>
@@ -1490,25 +1571,34 @@ async function guardarAdicional(id = null) {
     }
 }
 
-async function eliminarAdicional(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el adicional "${nombre}"?`)) {
+async function toggleDisponibleAdicional(id, nombre, disponibleActual) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el adicional "${nombre}"?`)) {
         return;
     }
 
     try {
+        const getResponse = await fetch(`/api/admin/adicionales/${id}`);
+        if (!getResponse.ok) throw new Error('Error al obtener el adicional');
+
+        const adicional = await getResponse.json();
+        adicional.disponible = !disponibleActual;
+
         const response = await fetch(`/api/admin/adicionales/${id}`, {
-            method: 'DELETE'
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(adicional)
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el adicional');
+            throw new Error('Error al actualizar el adicional');
         }
 
-        showAlert('Adicional eliminado exitosamente', 'success');
+        showAlert(`Adicional ${accion}do exitosamente`, 'success');
         await cargarAdicionales();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el adicional', 'danger');
+        showAlert(`Error al ${accion} el adicional`, 'danger');
     }
 }
 
@@ -1740,7 +1830,7 @@ window.showAlert = showAlert;
 // Productos
 window.nuevoProducto = nuevoProducto;
 window.editarProducto = editarProducto;
-window.eliminarProducto = eliminarProducto;
+window.toggleDisponibleProducto = toggleDisponibleProducto;
 window.verTamanios = verTamanios;
 
 // Tamaños
@@ -1751,14 +1841,14 @@ window.eliminarTamanio = eliminarTamanio;
 // Toppings
 window.nuevoTopping = nuevoTopping;
 window.editarTopping = editarTopping;
-window.eliminarTopping = eliminarTopping;
+window.toggleDisponibleTopping = toggleDisponibleTopping;
 
 // Jaleas
 window.nuevaJalea = nuevaJalea;
 window.editarJalea = editarJalea;
-window.eliminarJalea = eliminarJalea;
+window.toggleDisponibleJalea = toggleDisponibleJalea;
 
 // Adicionales
 window.nuevoAdicional = nuevoAdicional;
 window.editarAdicional = editarAdicional;
-window.eliminarAdicional = eliminarAdicional;
+window.toggleDisponibleAdicional = toggleDisponibleAdicional;
