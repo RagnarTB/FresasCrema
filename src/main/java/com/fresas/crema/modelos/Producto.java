@@ -1,13 +1,13 @@
 package com.fresas.crema.modelos;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class Producto {
@@ -22,29 +22,42 @@ public class Producto {
     @Size(max = 500)
     private String descripcion;
 
-    @NotNull(message = "El precio es obligatorio")
-    @PositiveOrZero
-    private Double precio;
-
     // Guardaremos la URL de la imagen (más simple que guardar el archivo)
     @NotEmpty(message = "La URL de la imagen no puede estar vacía")
     private String fotoUrl;
 
-    public Producto(Long id,
-            @NotEmpty(message = "El nombre no puede estar vacío") @Size(min = 3, max = 100) String nombre,
-            @Size(max = 500) String descripcion,
-            @NotNull(message = "El precio es obligatorio") @PositiveOrZero Double precio,
-            @NotEmpty(message = "La URL de la imagen no puede estar vacía") String fotoUrl) {
-        this.id = id;
-        this.nombre = nombre;
-        this.descripcion = descripcion;
-        this.precio = precio;
-        this.fotoUrl = fotoUrl;
-    }
+    // Tipo de crema: "NORMAL" o "CAFE"
+    @NotEmpty(message = "El tipo de crema es obligatorio")
+    private String tipoCrema = "NORMAL";
 
+    // Relación con tamaños (un producto puede tener varios tamaños con distintos precios)
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Tamanio> tamanios = new ArrayList<>();
+
+    // Constructores
     public Producto() {
     }
 
+    public Producto(String nombre, String descripcion, String fotoUrl, String tipoCrema) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+        this.fotoUrl = fotoUrl;
+        this.tipoCrema = tipoCrema;
+    }
+
+    // Métodos helper para manejar la relación bidireccional
+    public void addTamanio(Tamanio tamanio) {
+        tamanios.add(tamanio);
+        tamanio.setProducto(this);
+    }
+
+    public void removeTamanio(Tamanio tamanio) {
+        tamanios.remove(tamanio);
+        tamanio.setProducto(null);
+    }
+
+    // Getters y Setters
     public Long getId() {
         return id;
     }
@@ -69,14 +82,6 @@ public class Producto {
         this.descripcion = descripcion;
     }
 
-    public Double getPrecio() {
-        return precio;
-    }
-
-    public void setPrecio(Double precio) {
-        this.precio = precio;
-    }
-
     public String getFotoUrl() {
         return fotoUrl;
     }
@@ -85,4 +90,19 @@ public class Producto {
         this.fotoUrl = fotoUrl;
     }
 
+    public String getTipoCrema() {
+        return tipoCrema;
+    }
+
+    public void setTipoCrema(String tipoCrema) {
+        this.tipoCrema = tipoCrema;
+    }
+
+    public List<Tamanio> getTamanios() {
+        return tamanios;
+    }
+
+    public void setTamanios(List<Tamanio> tamanios) {
+        this.tamanios = tamanios;
+    }
 }

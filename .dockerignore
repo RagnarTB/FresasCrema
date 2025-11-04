@@ -1,0 +1,31 @@
+# Directorios de build
+target/
+!target/*.jar
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Documentación
+README.md
+GUIA_USUARIO.md
+docs/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

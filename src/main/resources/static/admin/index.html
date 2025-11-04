@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin DeliBoon - Panel</title>
+    <link rel="stylesheet" href="admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Nunito:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="admin-body">
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-left">
+            <button id="toggle-sidebar-btn" class="btn-icon">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="admin-logo">🍓 DeliBoon Admin</h1>
+        </div>
+        <div class="header-right">
+            <span class="admin-user">
+                <i class="fas fa-user-circle"></i> admin
+            </span>
+            <button id="logout-btn" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="admin-sidebar">
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#dashboard" class="sidebar-link active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#productos" class="sidebar-link">
+                        <i class="fas fa-box"></i>
+                        <span>Productos</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#tamanios" class="sidebar-link">
+                        <i class="fas fa-ruler"></i>
+                        <span>Tamaños</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#toppings" class="sidebar-link">
+                        <i class="fas fa-cookie"></i>
+                        <span>Toppings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#jaleas" class="sidebar-link">
+                        <i class="fas fa-droplet"></i>
+                        <span>Jaleas</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#adicionales" class="sidebar-link">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Adicionales</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#configuracion" class="sidebar-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Configuración</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="content" class="admin-content">
+            <!-- El contenido se cargará dinámicamente aquí -->
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Cargando...
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Formularios -->
+    <div id="form-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Formulario</h2>
+                <button class="modal-close" id="modal-close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="entity-form">
+                    <!-- El formulario se construirá dinámicamente -->
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancelar</button>
+                <button type="submit" form="entity-form" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

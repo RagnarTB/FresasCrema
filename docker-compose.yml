@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: fresascrema-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fresascrema
+      POSTGRES_PASSWORD: fresascrema2025
+      POSTGRES_DB: fresascrema_db
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - fresascrema-data:/var/lib/postgresql/data
+    networks:
+      - fresascrema-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fresascrema"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicación Spring Boot
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fresascrema-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Configuración de base de datos
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/fresascrema_db
+      SPRING_DATASOURCE_USERNAME: fresascrema
+      SPRING_DATASOURCE_PASSWORD: fresascrema2025
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+
+      # Configuración de JPA
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: false
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: true
+
+      # Perfil activo
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Configuración de memoria JVM
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    networks:
+      - fresascrema-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Redes
+networks:
+  fresascrema-network:
+    driver: bridge
+
+# Volúmenes persistentes
+volumes:
+  fresascrema-data:
+    driver: local
