@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeliBoon 🍓 - Fresas con Crema Deliciosas</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-ice-cream"></i>
+                    <h1>DeliBoon <span class="emoji">🍓</span></h1>
+                </div>
+                <button class="cart-button" id="cart-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cart-count">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h2 class="hero-title">¡Fresas con Crema <span class="highlight">Irresistibles!</span></h2>
+                <p class="hero-subtitle">Personaliza tu delicia perfecta con nuestros toppings y jaleas favoritas</p>
+                <a href="#menu" class="hero-button">
+                    <i class="fas fa-arrow-down"></i>
+                    Ver Menú
+                </a>
+            </div>
+            <div class="hero-image">
+                <div class="floating-emoji">🍓</div>
+                <div class="floating-emoji">🍫</div>
+                <div class="floating-emoji">🍪</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section class="menu" id="menu">
+        <div class="container">
+            <h2 class="section-title">Nuestro Menú</h2>
+            <p class="section-subtitle">Elige tu delicia favorita y personalízala a tu gusto</p>
+
+            <!-- Loading State -->
+            <div id="loading-state" class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Cargando nuestro delicioso menú...</p>
+            </div>
+
+            <!-- Menu Container (se llenará dinámicamente) -->
+            <div class="menu-container" id="menu-container"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>No hay productos disponibles en este momento</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cart Modal -->
+    <div class="modal" id="cart-modal">
+        <div class="modal-overlay" id="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-shopping-cart"></i>
+                    Mi Carrito
+                </h3>
+                <button class="modal-close" id="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Cart Items -->
+                <div id="cart-items-container" class="cart-items">
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-basket"></i>
+                        <p>Tu carrito está vacío</p>
+                    </div>
+                </div>
+
+                <!-- Cart Total -->
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span class="total-price" id="cart-total">S/ 0.00</span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="continue-shopping">
+                    <i class="fas fa-arrow-left"></i>
+                    Seguir Comprando
+                </button>
+                <button class="btn btn-success" id="confirm-order-btn" disabled>
+                    <i class="fab fa-whatsapp"></i>
+                    Confirmar Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>
+                <i class="fas fa-heart"></i>
+                Hecho con amor | DeliBoon 2025
+            </p>
+            <div class="footer-links">
+                <a href="#menu">Menú</a>
+                <a href="#" id="whatsapp-link">
+                    <i class="fab fa-whatsapp"></i>
+                    Contáctanos
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
