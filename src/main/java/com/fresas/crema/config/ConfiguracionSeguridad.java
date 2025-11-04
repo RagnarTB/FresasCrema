@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.firewall.HttpFirewall;
 import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -83,17 +84,17 @@ public class ConfiguracionSeguridad {
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll())
-                // CSRF Protection (deshabilitado para API REST, pero habilitado para producción con SPA)
+                // CSRF Protection (deshabilitado para API REST por ser SPA)
                 .csrf(csrf -> csrf
-                        // Desactivar CSRF solo para la API pública y login (sin estado)
-                        .ignoringRequestMatchers("/api/public/**", "/api/login")
+                        // Desactivar CSRF para la API pública, login y admin (SPA sin tokens CSRF)
+                        .ignoringRequestMatchers("/api/public/**", "/api/login", "/api/admin/**")
                 )
                 // Headers de seguridad mejorados
                 .headers(headers -> headers
                         // Protección contra clickjacking
                         .frameOptions(frame -> frame.sameOrigin())
                         // XSS Protection
-                        .xssProtection(xss -> xss.headerValue("1; mode=block"))
+                        .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
                         // Content Type Options
                         .contentTypeOptions(contentType -> {})
                         // Content Security Policy (CSP)

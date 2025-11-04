@@ -726,6 +726,7 @@ async function verTamanios(productoId) {
                                     <th>Precio Base</th>
                                     <th>Toppings Incl.</th>
                                     <th>Jaleas Incl.</th>
+                                    <th>Disponible</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -737,11 +738,20 @@ async function verTamanios(productoId) {
                                         <td>${tam.toppingsIncluidos}</td>
                                         <td>${tam.jaleasIncluidas}</td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-secondary" onclick="editarTamanio(${tam.id})">
+                                            <span style="color: ${tam.disponible ? 'var(--color-success)' : 'var(--color-danger)'}">
+                                                <i class="fas fa-${tam.disponible ? 'check-circle' : 'times-circle'}"></i>
+                                                ${tam.disponible ? 'Sí' : 'No'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-secondary" onclick="editarTamanio(${tam.id})" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="eliminarTamanio(${tam.id}, '${tam.nombre}')">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="button" class="btn btn-sm ${tam.disponible ? 'btn-warning' : 'btn-success'}"
+                                                    onclick="toggleDisponibleTamanio(${tam.id}, '${tam.nombre}', ${tam.disponible}, ${productoId})"
+                                                    title="${tam.disponible ? 'Desactivar' : 'Activar'}">
+                                                <i class="fas fa-${tam.disponible ? 'times' : 'check'}"></i>
+                                                ${tam.disponible ? 'Desactivar' : 'Activar'}
                                             </button>
                                         </td>
                                     </tr>
@@ -800,6 +810,13 @@ function nuevoTamanioParaProducto(productoId) {
             <div class="form-group">
                 <label for="tamanio-jaleas">Jaleas Incluidas *</label>
                 <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" id="tamanio-disponible" name="disponible" checked>
+                    <label for="tamanio-disponible">Tamaño disponible</label>
+                </div>
             </div>
         </form>
     `;
@@ -860,6 +877,13 @@ async function editarTamanio(tamanioId) {
                     <label for="tamanio-jaleas">Jaleas Incluidas *</label>
                     <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" value="${tamanio.jaleasIncluidas}" min="0" required>
                 </div>
+
+                <div class="form-group">
+                    <div class="form-check">
+                        <input type="checkbox" id="tamanio-disponible" name="disponible" ${tamanio.disponible ? 'checked' : ''}>
+                        <label for="tamanio-disponible">Tamaño disponible</label>
+                    </div>
+                </div>
             </form>
         `;
 
@@ -888,12 +912,14 @@ async function guardarTamanio(productoId, tamanioId = null) {
     const precioBase = parseFloat(document.getElementById('tamanio-precio').value);
     const toppingsIncluidos = parseInt(document.getElementById('tamanio-toppings').value);
     const jaleasIncluidas = parseInt(document.getElementById('tamanio-jaleas').value);
+    const disponible = document.getElementById('tamanio-disponible').checked;
 
     const tamanio = {
         nombre,
         precioBase,
         toppingsIncluidos,
         jaleasIncluidas,
+        disponible,
         producto: { id: productoId }
     };
 
@@ -925,34 +951,31 @@ async function guardarTamanio(productoId, tamanioId = null) {
 }
 
 /**
- * Elimina un tamaño
+ * Activa o desactiva un tamaño
  */
-async function eliminarTamanio(tamanioId, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el tamaño "${nombre}"?`)) {
+async function toggleDisponibleTamanio(tamanioId, nombre, disponibleActual, productoId) {
+    const accion = disponibleActual ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${accion} el tamaño "${nombre}"?\n\nLos clientes ${disponibleActual ? 'NO' : 'SÍ'} podrán seleccionar este tamaño.`)) {
         return;
     }
 
     try {
-        // Primero obtener el productoId antes de eliminar
-        const tamanioResponse = await fetch(`/api/admin/tamanios/${tamanioId}`);
-        const tamanio = await tamanioResponse.json();
-        const productoId = tamanio.producto.id;
-
-        const response = await fetch(`/api/admin/tamanios/${tamanioId}`, {
-            method: 'DELETE'
+        const response = await fetch(`/api/admin/tamanios/${tamanioId}/toggle-disponible`, {
+            method: 'PATCH'
         });
 
         if (!response.ok) {
-            throw new Error('Error al eliminar el tamaño');
+            throw new Error('Error al actualizar el tamaño');
         }
 
-        showAlert('Tamaño eliminado exitosamente', 'success');
+        const data = await response.json();
+        showAlert(data.mensaje || `Tamaño ${accion}do exitosamente`, 'success');
 
         // Recargar la vista de tamaños del producto
         await verTamanios(productoId);
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al eliminar el tamaño', 'danger');
+        showAlert(`Error al ${accion} el tamaño`, 'danger');
     }
 }
 
@@ -1893,7 +1916,7 @@ window.verTamanios = verTamanios;
 // Tamaños
 window.nuevoTamanioParaProducto = nuevoTamanioParaProducto;
 window.editarTamanio = editarTamanio;
-window.eliminarTamanio = eliminarTamanio;
+window.toggleDisponibleTamanio = toggleDisponibleTamanio;
 
 // Toppings
 window.nuevoTopping = nuevoTopping;
