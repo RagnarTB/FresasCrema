@@ -355,6 +355,10 @@ body {
     background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
 }
 
+.product-badge.mixta {
+    background: linear-gradient(135deg, #9C27B0 0%, #E91E63 100%);
+}
+
 .product-description {
     color: var(--color-text-light);
     margin-bottom: var(--spacing-md);
@@ -835,5 +839,31 @@ body {
     .footer-links {
         flex-direction: column;
         gap: var(--spacing-xs);
+    }
+}
+
+/* ============================================
+   ANIMACIONES PARA TOASTS
+   ============================================ */
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
     }
 }

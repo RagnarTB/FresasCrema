@@ -378,8 +378,8 @@ function mostrarProductos(productos) {
                             <td><strong>${producto.nombre}</strong></td>
                             <td>${producto.descripcion || '-'}</td>
                             <td>
-                                <span style="background: ${producto.tipoCrema === 'NORMAL' ? '#E8F5E9' : '#FFF3E0'};
-                                             color: ${producto.tipoCrema === 'NORMAL' ? '#2E7D32' : '#E65100'};
+                                <span style="background: ${producto.tipoCrema === 'NORMAL' ? '#E8F5E9' : producto.tipoCrema === 'CAFE' ? '#FFF3E0' : '#F3E5F5'};
+                                             color: ${producto.tipoCrema === 'NORMAL' ? '#2E7D32' : producto.tipoCrema === 'CAFE' ? '#E65100' : '#7B1FA2'};
                                              padding: 4px 8px;
                                              border-radius: 4px;
                                              font-weight: 600;">
@@ -445,6 +445,7 @@ function nuevoProducto() {
             <select id="producto-tipo-crema" name="tipoCrema" required>
                 <option value="NORMAL">NORMAL (Crema Natural)</option>
                 <option value="CAFE">CAFE (Crema de Café)</option>
+                <option value="MIXTA">MIXTA (Café + Natural)</option>
             </select>
         </div>
 
@@ -523,6 +524,7 @@ async function editarProducto(id) {
                 <select id="producto-tipo-crema" name="tipoCrema" required>
                     <option value="NORMAL" ${producto.tipoCrema === 'NORMAL' ? 'selected' : ''}>NORMAL (Crema Natural)</option>
                     <option value="CAFE" ${producto.tipoCrema === 'CAFE' ? 'selected' : ''}>CAFE (Crema de Café)</option>
+                    <option value="MIXTA" ${producto.tipoCrema === 'MIXTA' ? 'selected' : ''}>MIXTA (Café + Natural)</option>
                 </select>
             </div>
 
@@ -781,57 +783,60 @@ async function verTamanios(productoId) {
  * Crea un nuevo tamaño para un producto específico
  */
 function nuevoTamanioParaProducto(productoId) {
-    const modal = document.getElementById('form-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const formContainer = document.getElementById('entity-form');
+    // Cerrar el modal actual primero
+    closeModal();
 
-    // No cerrar el modal, solo actualizar su contenido
-    modalTitle.textContent = 'Nuevo Tamaño';
+    // Esperar un momento para que el modal se cierre
+    setTimeout(() => {
+        const modal = document.getElementById('form-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const formContainer = document.getElementById('entity-form');
 
-    formContainer.innerHTML = `
-        <form id="tamanio-form">
-            <input type="hidden" id="tamanio-producto-id" value="${productoId}">
+        modalTitle.textContent = 'Nuevo Tamaño';
 
-            <div class="form-group">
-                <label for="tamanio-nombre">Nombre del Tamaño *</label>
-                <input type="text" id="tamanio-nombre" name="nombre" required placeholder="Ej: Personal, Mediano, Grande">
-            </div>
+        formContainer.innerHTML = `
+            <form id="tamanio-form">
+                <input type="hidden" id="tamanio-producto-id" value="${productoId}">
 
-            <div class="form-group">
-                <label for="tamanio-precio">Precio Base (S/) *</label>
-                <input type="number" id="tamanio-precio" name="precioBase" step="0.01" min="0" required>
-            </div>
-
-            <div class="form-group">
-                <label for="tamanio-toppings">Toppings Incluidos *</label>
-                <input type="number" id="tamanio-toppings" name="toppingsIncluidos" min="0" required>
-            </div>
-
-            <div class="form-group">
-                <label for="tamanio-jaleas">Jaleas Incluidas *</label>
-                <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" min="0" required>
-            </div>
-
-            <div class="form-group">
-                <div class="form-check">
-                    <input type="checkbox" id="tamanio-disponible" name="disponible" checked>
-                    <label for="tamanio-disponible">Tamaño disponible</label>
+                <div class="form-group">
+                    <label for="tamanio-nombre">Nombre del Tamaño *</label>
+                    <input type="text" id="tamanio-nombre" name="nombre" required placeholder="Ej: Pequeño, Mediano, Grande, Premium">
                 </div>
-            </div>
-        </form>
-    `;
 
-    // Configurar el submit del formulario
-    const form = document.getElementById('tamanio-form');
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-        await guardarTamanio(productoId);
-    };
+                <div class="form-group">
+                    <label for="tamanio-precio">Precio Base (S/) *</label>
+                    <input type="number" id="tamanio-precio" name="precioBase" step="0.01" min="0" required placeholder="Ej: 5, 8, 10, 15">
+                </div>
 
-    // Asegurarse de que el modal esté visible
-    if (!modal.classList.contains('show')) {
+                <div class="form-group">
+                    <label for="tamanio-toppings">Toppings Incluidos *</label>
+                    <input type="number" id="tamanio-toppings" name="toppingsIncluidos" min="0" required placeholder="Ej: 1, 2, 3, 4">
+                </div>
+
+                <div class="form-group">
+                    <label for="tamanio-jaleas">Jaleas Incluidas *</label>
+                    <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" min="0" required placeholder="Ej: 1, 2, 3, 4">
+                </div>
+
+                <div class="form-group">
+                    <div class="form-check">
+                        <input type="checkbox" id="tamanio-disponible" name="disponible" checked>
+                        <label for="tamanio-disponible">Tamaño disponible</label>
+                    </div>
+                </div>
+            </form>
+        `;
+
+        // Configurar el submit del formulario
+        const form = document.getElementById('tamanio-form');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            await guardarTamanio(productoId);
+        };
+
+        // Abrir el modal
         modal.classList.add('show');
-    }
+    }, 300); // Esperar 300ms para que el modal anterior se cierre
 }
 
 /**
@@ -847,57 +852,61 @@ async function editarTamanio(tamanioId) {
 
         const tamanio = await response.json();
 
-        const modal = document.getElementById('form-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const formContainer = document.getElementById('entity-form');
+        // Primero cerrar el modal actual
+        closeModal();
 
-        modalTitle.textContent = 'Editar Tamaño';
+        // Esperar un momento para que el modal se cierre
+        setTimeout(() => {
+            const modal = document.getElementById('form-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const formContainer = document.getElementById('entity-form');
 
-        formContainer.innerHTML = `
-            <form id="tamanio-form">
-                <input type="hidden" id="tamanio-id" value="${tamanio.id}">
-                <input type="hidden" id="tamanio-producto-id" value="${tamanio.producto.id}">
+            modalTitle.textContent = 'Editar Tamaño';
 
-                <div class="form-group">
-                    <label for="tamanio-nombre">Nombre del Tamaño *</label>
-                    <input type="text" id="tamanio-nombre" name="nombre" value="${tamanio.nombre}" required>
-                </div>
+            formContainer.innerHTML = `
+                <form id="tamanio-form">
+                    <input type="hidden" id="tamanio-id" value="${tamanio.id}">
+                    <input type="hidden" id="tamanio-producto-id" value="${tamanio.producto.id}">
 
-                <div class="form-group">
-                    <label for="tamanio-precio">Precio Base (S/) *</label>
-                    <input type="number" id="tamanio-precio" name="precioBase" value="${tamanio.precioBase}" step="0.01" min="0" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="tamanio-toppings">Toppings Incluidos *</label>
-                    <input type="number" id="tamanio-toppings" name="toppingsIncluidos" value="${tamanio.toppingsIncluidos}" min="0" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="tamanio-jaleas">Jaleas Incluidas *</label>
-                    <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" value="${tamanio.jaleasIncluidas}" min="0" required>
-                </div>
-
-                <div class="form-group">
-                    <div class="form-check">
-                        <input type="checkbox" id="tamanio-disponible" name="disponible" ${tamanio.disponible ? 'checked' : ''}>
-                        <label for="tamanio-disponible">Tamaño disponible</label>
+                    <div class="form-group">
+                        <label for="tamanio-nombre">Nombre del Tamaño *</label>
+                        <input type="text" id="tamanio-nombre" name="nombre" value="${tamanio.nombre}" required>
                     </div>
-                </div>
-            </form>
-        `;
 
-        // Configurar el submit del formulario
-        const form = document.getElementById('tamanio-form');
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            await guardarTamanio(tamanio.producto.id, tamanio.id);
-        };
+                    <div class="form-group">
+                        <label for="tamanio-precio">Precio Base (S/) *</label>
+                        <input type="number" id="tamanio-precio" name="precioBase" value="${tamanio.precioBase}" step="0.01" min="0" required>
+                    </div>
 
-        // Asegurarse de que el modal esté visible
-        if (!modal.classList.contains('show')) {
+                    <div class="form-group">
+                        <label for="tamanio-toppings">Toppings Incluidos *</label>
+                        <input type="number" id="tamanio-toppings" name="toppingsIncluidos" value="${tamanio.toppingsIncluidos}" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tamanio-jaleas">Jaleas Incluidas *</label>
+                        <input type="number" id="tamanio-jaleas" name="jaleasIncluidas" value="${tamanio.jaleasIncluidas}" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" id="tamanio-disponible" name="disponible" ${tamanio.disponible ? 'checked' : ''}>
+                            <label for="tamanio-disponible">Tamaño disponible</label>
+                        </div>
+                    </div>
+                </form>
+            `;
+
+            // Configurar el submit del formulario
+            const form = document.getElementById('tamanio-form');
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                await guardarTamanio(tamanio.producto.id, tamanio.id);
+            };
+
+            // Abrir el modal
             modal.classList.add('show');
-        }
+        }, 300); // Esperar 300ms para que el modal anterior se cierre
     } catch (error) {
         console.error('Error:', error);
         showAlert('Error al cargar el tamaño', 'danger');

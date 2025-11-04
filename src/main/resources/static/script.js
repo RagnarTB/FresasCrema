@@ -127,7 +127,7 @@ function crearProductCard(producto) {
         <div class="product-info">
             <div class="product-header">
                 <h3 class="product-title">${producto.nombre}</h3>
-                <span class="product-badge ${producto.tipoCrema === 'CAFE' ? 'cafe' : ''}">${producto.tipoCrema}</span>
+                <span class="product-badge ${producto.tipoCrema === 'CAFE' ? 'cafe' : producto.tipoCrema === 'MIXTA' ? 'mixta' : ''}">${producto.tipoCrema}</span>
             </div>
             ${producto.descripcion ? `<p class="product-description">${producto.descripcion}</p>` : ''}
 
@@ -312,7 +312,179 @@ function attachFormListeners() {
     const forms = document.querySelectorAll('.product-form');
     forms.forEach(form => {
         form.addEventListener('submit', handleFormSubmit);
+
+        // Agregar listeners para restricciones de tamaño
+        setupSizeRestrictions(form);
     });
+}
+
+/**
+ * Configura las restricciones de selección basadas en el tamaño
+ */
+function setupSizeRestrictions(form) {
+    const tamanioInputs = form.querySelectorAll('input[name="tamanio"]');
+    const toppingsInputs = form.querySelectorAll('input[name="toppings"]');
+    const jaleasInputs = form.querySelectorAll('input[name="jaleas"]');
+
+    // Event listener cuando se cambia el tamaño
+    tamanioInputs.forEach(tamanioInput => {
+        tamanioInput.addEventListener('change', () => {
+            const maxToppings = parseInt(tamanioInput.dataset.toppingsIncluidos);
+            const maxJaleas = parseInt(tamanioInput.dataset.jaleasIncluidas);
+
+            // Actualizar restricciones de toppings
+            updateSelectionRestrictions(form, toppingsInputs, maxToppings, 'toppings');
+
+            // Actualizar restricciones de jaleas
+            updateSelectionRestrictions(form, jaleasInputs, maxJaleas, 'jaleas');
+
+            // Mostrar mensaje informativo
+            showSizeInfo(form, maxToppings, maxJaleas);
+        });
+
+        // Si es el tamaño por defecto seleccionado, activar restricciones
+        if (tamanioInput.checked) {
+            tamanioInput.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Event listeners en checkboxes para validar en tiempo real
+    toppingsInputs.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            const tamanioSelected = form.querySelector('input[name="tamanio"]:checked');
+            if (tamanioSelected) {
+                const maxToppings = parseInt(tamanioSelected.dataset.toppingsIncluidos);
+                validateCheckboxLimit(form, toppingsInputs, maxToppings, checkbox, 'toppings');
+            }
+        });
+    });
+
+    jaleasInputs.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            const tamanioSelected = form.querySelector('input[name="tamanio"]:checked');
+            if (tamanioSelected) {
+                const maxJaleas = parseInt(tamanioSelected.dataset.jaleasIncluidas);
+                validateCheckboxLimit(form, jaleasInputs, maxJaleas, checkbox, 'jaleas');
+            }
+        });
+    });
+}
+
+/**
+ * Actualiza las restricciones de selección
+ */
+function updateSelectionRestrictions(form, checkboxes, maxAllowed, type) {
+    // Resetear todos los checkboxes
+    checkboxes.forEach(cb => {
+        cb.disabled = false;
+        cb.parentElement.style.opacity = '1';
+    });
+
+    // Si ya hay selecciones, verificar límite
+    const selectedCount = form.querySelectorAll(`input[name="${type}"]:checked`).length;
+    if (selectedCount >= maxAllowed) {
+        // Deshabilitar los no seleccionados
+        checkboxes.forEach(cb => {
+            if (!cb.checked) {
+                cb.disabled = true;
+                cb.parentElement.style.opacity = '0.5';
+            }
+        });
+    }
+}
+
+/**
+ * Valida el límite de checkboxes al hacer cambios
+ */
+function validateCheckboxLimit(form, checkboxes, maxAllowed, currentCheckbox, type) {
+    const selectedCount = form.querySelectorAll(`input[name="${type}"]:checked`).length;
+
+    if (selectedCount > maxAllowed) {
+        // Desmarcar el último checkbox marcado
+        currentCheckbox.checked = false;
+
+        // Mostrar mensaje
+        const typeName = type === 'toppings' ? 'toppings' : 'jaleas';
+        showToast(`Solo puedes seleccionar hasta ${maxAllowed} ${typeName} con este tamaño`, 'warning');
+        return false;
+    }
+
+    // Actualizar restricciones
+    updateSelectionRestrictions(form, checkboxes, maxAllowed, type);
+    return true;
+}
+
+/**
+ * Muestra información del tamaño seleccionado
+ */
+function showSizeInfo(form, maxToppings, maxJaleas) {
+    // Buscar si ya existe un mensaje de info
+    let infoDiv = form.querySelector('.size-restrictions-info');
+
+    if (!infoDiv) {
+        // Crear div de información
+        infoDiv = document.createElement('div');
+        infoDiv.className = 'size-restrictions-info';
+        infoDiv.style.cssText = `
+            background: #E3F2FD;
+            border: 1px solid #2196F3;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 14px;
+            color: #1976D2;
+        `;
+
+        // Insertar después de la sección de tamaños
+        const tamanioSection = form.querySelector('.form-section');
+        if (tamanioSection && tamanioSection.nextSibling) {
+            tamanioSection.parentNode.insertBefore(infoDiv, tamanioSection.nextSibling);
+        }
+    }
+
+    infoDiv.innerHTML = `
+        <i class="fas fa-info-circle"></i>
+        <strong>Con este tamaño puedes elegir:</strong><br>
+        • Hasta ${maxToppings} topping${maxToppings !== 1 ? 's' : ''}<br>
+        • Hasta ${maxJaleas} jalea${maxJaleas !== 1 ? 's' : ''}
+    `;
+}
+
+/**
+ * Muestra un mensaje toast temporal
+ */
+function showToast(message, type = 'info') {
+    // Remover toast anterior si existe
+    const existingToast = document.querySelector('.toast-message');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'warning' ? '#FF9800' : '#4CAF50'};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-size: 14px;
+        max-width: 300px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 /**
@@ -342,9 +514,21 @@ function handleFormSubmit(e) {
     const toppingsInputs = form.querySelectorAll('input[name="toppings"]:checked');
     const toppings = Array.from(toppingsInputs).map(input => input.dataset.nombre);
 
+    // Validar cantidad de toppings
+    if (toppings.length > tamanio.toppingsIncluidos) {
+        showToast(`Solo puedes seleccionar hasta ${tamanio.toppingsIncluidos} toppings con el tamaño ${tamanio.nombre}`, 'warning');
+        return;
+    }
+
     // Obtener jaleas seleccionadas
     const jaleasInputs = form.querySelectorAll('input[name="jaleas"]:checked');
     const jaleas = Array.from(jaleasInputs).map(input => input.dataset.nombre);
+
+    // Validar cantidad de jaleas
+    if (jaleas.length > tamanio.jaleasIncluidas) {
+        showToast(`Solo puedes seleccionar hasta ${tamanio.jaleasIncluidas} jaleas con el tamaño ${tamanio.nombre}`, 'warning');
+        return;
+    }
 
     // Obtener adicionales seleccionados
     const adicionalesInputs = form.querySelectorAll('input[name="adicionales"]:checked');
